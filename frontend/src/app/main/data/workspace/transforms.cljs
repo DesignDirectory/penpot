@@ -101,9 +101,11 @@
                   shape-transform (:transform shape (gmt/matrix))
                   shape-transform-inverse (:transform-inverse shape (gmt/matrix))
 
+                  shape-center (gsh/center shape)
+
                   ;; Resize origin point given the selected handler
                   origin  (-> (handler-resize-origin shape handler)
-                              (gsh/transform-shape-point shape shape-transform))]
+                              (gsh/transform-point-center shape-center shape-transform))]
 
               (rx/of (set-modifiers ids
                                     {:resize-vector scalev

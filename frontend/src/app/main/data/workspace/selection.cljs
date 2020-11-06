@@ -29,9 +29,6 @@
 (s/def ::set-of-uuid
   (s/every uuid? :kind set?))
 
-(s/def ::ordered-set-of-uuid
-  (s/every uuid? :kind d/ordered-set?))
-
 (s/def ::set-of-string
   (s/every string? :kind set?))
 
@@ -104,20 +101,6 @@
              objects (dwc/lookup-page-objects state page-id)]
          (rx/of (dwc/expand-all-parents [id] objects)))))))
 
-(defn select-shapes
-  [ids]
-  (us/verify ::ordered-set-of-uuid ids)
-  (ptk/reify ::select-shapes
-    ptk/UpdateEvent
-    (update [_ state]
-      (assoc-in state [:workspace-local :selected] ids))
-
-    ptk/WatchEvent
-    (watch [_ state stream]
-       (let [page-id (:current-page-id state)
-             objects (dwc/lookup-page-objects state page-id)]
-        (rx/of (dwc/expand-all-parents ids objects))))))
-
 (defn deselect-all 
   "Clear all possible state of drawing, edition
   or any similar action taken by the user.
@@ -158,7 +141,7 @@
                           :page-id page-id
                           :rect selrect})
                 (rx/map #(into lks/empty-linked-set (filter is-not-blocked) %))
-                (rx/map select-shapes))))))))
+                (rx/map dwc/select-shapes))))))))
 
 (defn select-inside-group
   [group-id position]
@@ -377,7 +360,7 @@
                           (into (d/ordered-set)))]
 
         (rx/of (dwc/commit-changes rchanges uchanges {:commit-local? true})
-               (select-shapes selected))))))
+               (dwc/select-shapes selected))))))
 
 (defn change-hover-state
   [id value]

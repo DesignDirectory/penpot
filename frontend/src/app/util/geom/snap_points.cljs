@@ -30,6 +30,6 @@
         shape-center (gsh/center shape)]
     (if (= :frame (:type shape))
       (-> shape
-          (gsh/shape->rect-shape)
+          :selrect
           (frame-snap-points))
       (into #{shape-center} (:points shape)))))

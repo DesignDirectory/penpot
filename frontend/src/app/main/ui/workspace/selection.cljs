@@ -181,7 +181,7 @@
         on-rotate (obj/get props "on-rotate")
         current-transform (mf/deref refs/current-transform)
 
-        selrect (geom/shape->rect-shape shape)
+        selrect (:selrect shape)
         transform (geom/transform-matrix shape)
 
         tr-shape (geom/transform-shape shape)]

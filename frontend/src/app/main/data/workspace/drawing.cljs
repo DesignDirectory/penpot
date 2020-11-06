@@ -12,14 +12,48 @@
   (:require
    [beicon.core :as rx]
    [potok.core :as ptk]
+   [app.common.spec :as us]
    [app.common.pages :as cp]
    [app.common.uuid :as uuid]
+   [app.main.data.workspace.common :as dwc]
+   [app.main.data.workspace.selection :as dws]
    [app.main.data.workspace.drawing.common :as common]
    [app.main.data.workspace.drawing.path :as path]
    [app.main.data.workspace.drawing.curve :as curve]
    [app.main.data.workspace.drawing.box :as box]))
 
+(declare start-drawing)
 (declare handle-drawing)
+
+;; --- Select for Drawing
+
+(defn select-for-drawing
+  ([tool] (select-for-drawing tool nil))
+  ([tool data]
+   (ptk/reify ::select-for-drawing
+     ptk/UpdateEvent
+     (update [_ state]
+       (update state :workspace-drawing assoc :tool tool :object data))
+
+     ptk/WatchEvent
+     (watch [_ state stream]
+       (prn "select-for-drawing" tool)
+       (let [stoper (rx/filter (ptk/type? ::clear-drawing) stream)]
+         (rx/merge
+          (rx/of (dws/deselect-all))
+
+          (when (= tool :path)
+            (rx/of (start-drawing :path)))
+
+          ;; NOTE: comments are a special case and they manage they
+          ;; own interrupt cycle.
+          (when (not= tool :comments)
+            (->> stream
+                 (rx/filter dwc/interrupt?)
+                 (rx/take 1)
+                 (rx/map (constantly common/clear-drawing))
+                 (rx/take-until stoper)))))))))
+
 
 ;; NOTE/TODO: when an exception is raised in some point of drawing the
 ;; draw lock is not released so the user need to refresh in order to
@@ -36,6 +70,7 @@
 
       ptk/WatchEvent
       (watch [_ state stream]
+        (prn "start-drawing")
         (let [lock (get-in state [:workspace-drawing :lock])]
           (when (= lock lock-id)
             (rx/merge
@@ -55,6 +90,7 @@
 
     ptk/WatchEvent
     (watch [_ state stream]
+      (prn "handle-drawing")
       (rx/of (case type
                :path
                (path/handle-drawing-path)
@@ -67,4 +103,5 @@
 
 ;; Export
 (def close-drawing-path path/close-drawing-path)
+
 
